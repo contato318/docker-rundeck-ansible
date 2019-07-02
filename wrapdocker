@@ -1,0 +1,89 @@
+#!/bin/bash
+
+
+
+
+dmsetup mknodes
+CGROUP=/sys/fs/cgroup
+: {LOG:=stdio}
+
+[ -d $CGROUP ] ||
+	mkdir $CGROUP
+
+mountpoint -q $CGROUP ||
+	mount -n -t tmpfs -o uid=0,gid=0,mode=0755 cgroup $CGROUP || {
+		echo "Could not make a tmpfs mount. Did you use --privileged?"
+		exit 1
+	}
+
+if [ -d /sys/kernel/security ] && ! mountpoint -q /sys/kernel/security
+then
+    mount -t securityfs none /sys/kernel/security || {
+        echo "Could not mount /sys/kernel/security."
+        echo "AppArmor detection and --privileged mode might break."
+    }
+fi
+
+for SUBSYS in $(cut -d: -f2 /proc/1/cgroup)
+do
+        [ -d $CGROUP/$SUBSYS ] || mkdir $CGROUP/$SUBSYS
+        mountpoint -q $CGROUP/$SUBSYS ||
+                mount -n -t cgroup -o $SUBSYS cgroup $CGROUP/$SUBSYS
+
+        echo $SUBSYS | grep -q ^name= && {
+                NAME=$(echo $SUBSYS | sed s/^name=//)
+                ln -s $SUBSYS $CGROUP/$NAME
+        }
+
+        [ $SUBSYS = cpuacct,cpu ] && ln -s $SUBSYS $CGROUP/cpu,cpuacct
+done
+
+grep -q :devices: /proc/1/cgroup ||
+	echo "WARNING: the 'devices' cgroup should be in its own hierarchy."
+grep -qw devices /proc/1/cgroup ||
+	echo "WARNING: it looks like the 'devices' cgroup is not mounted."
+
+pushd /proc/self/fd >/dev/null
+for FD in *
+do
+	case "$FD" in
+	# Keep stdin/stdout/stderr
+	[012])
+		;;
+	# Nuke everything else
+	*)
+		eval exec "$FD>&-"
+		;;
+	esac
+done
+popd >/dev/null
+
+
+rm -rf /var/run/docker.pid
+
+if [ "$PORT" ]
+then
+	exec dockerd -H 0.0.0.0:$PORT -H unix:///var/run/docker.sock \
+		$DOCKER_DAEMON_ARGS
+else
+	if [ "$LOG" == "file" ]
+	then
+		dockerd $DOCKER_DAEMON_ARGS &>/var/log/docker.log &
+	else
+		dockerd $DOCKER_DAEMON_ARGS &
+	fi
+	(( timeout = 60 + SECONDS ))
+	until docker info >/dev/null 2>&1
+	do
+		if (( SECONDS >= timeout )); then
+			echo 'Timed out trying to connect to internal docker host.' >&2
+			break
+		fi
+		sleep 1
+	done
+	[[ $1 ]] && exec "$@"
+	exec bash --login
+fi
+
+# Hey Little Trouble Maker...
+
