@@ -35,7 +35,7 @@ CMD ["wrapdocker"]
 ##################################################
 # PIP - docker compose, pywinrm, boto3 e ansible #
 ##################################################
-RUN pip3 install docker-compose  pywinrm boto3 ansible
+RUN pip3 install docker-compose pywinrm boto3 pyvmomi ansible
 RUN docker-compose version
 
 
