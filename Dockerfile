@@ -1,6 +1,6 @@
 ARG RUNDECK_IMAGE
 
-FROM ${RUNDECK_IMAGE:-jordan/rundeck:3.0.23}
+FROM ${RUNDECK_IMAGE:-jordan/rundeck:3.2.4}
 
 MAINTAINER Dirceu Silva <docker@dirceusilva.com>
 
