@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl \
     lxc \
+    telnet \
     git-core \
     sshpass \
     && apt-get install -y python3-pip python3-dev \
