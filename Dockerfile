@@ -7,6 +7,7 @@ MAINTAINER Dirceu Silva <docker@dirceusilva.com>
 RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
+    inetutils-traceroute \
     curl \
     lxc \
     telnet \
