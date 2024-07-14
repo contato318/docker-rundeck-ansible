@@ -54,4 +54,4 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 ##########################
 COPY configura.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/configura.sh
-CMD [configura.sh"]
+CMD ["configura.sh"]
